@@ -1,0 +1,80 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net10.0-windows10.0.19041.0</TargetFramework>
+        <Nullable>enable</Nullable>
+        <LangVersion>latest</LangVersion>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Platforms>AnyCPU;x64</Platforms>
+        <!-- 宿主构建产物目录：默认指向本机 ClassFabric 2.2 Debug 输出，可用环境变量 ClassFabricDevOutput 覆盖 -->
+        <ClassFabricDevOutput Condition="'$(ClassFabricDevOutput)' == ''">E:\Project\ClassFabric 2.2\ClassFabric.Desktop\bin\Debug\net10.0-windows10.0.19041.0</ClassFabricDevOutput>
+    </PropertyGroup>
+
+    <!-- 与宿主保持同版本的 UI 依赖（宿主运行时自带这些程序集，Private=false 的宿主引用不落盘） -->
+    <ItemGroup>
+        <PackageReference Include="Avalonia" Version="12.1.1" />
+        <PackageReference Include="FluentAvaloniaUI" Version="3.0.0" />
+        <PackageReference Include="Avalonia.Labs.CommandManager" Version="12.0.2" />
+        <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="10.0.10" />
+        <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.10" />
+        <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.10" />
+        <!-- NotificationRequest 继承自 ObservableRecipient，编译期需要该程序集；ExcludeAssets=runtime 避免把宿主已有的 DLL 复制进插件输出 -->
+        <PackageReference Include="CommunityToolkit.Mvvm" Version="8.2.1" ExcludeAssets="runtime" />
+        <!-- 二维码生成（MIT）：设置页内嵌生成本机访问二维码 -->
+        <PackageReference Include="QRCoder" Version="1.6.0" />
+    </ItemGroup>
+
+    <!-- 类库默认不把包依赖复制进 bin（宿主自带 Avalonia 等运行时，无需落盘）；
+         唯独 QRCoder 宿主没有，缺了它「二维码」按钮一按就 FileNotFoundException。
+         这里只把 QRCoder 补进输出，其余依赖维持不落盘——整包 CopyLocal 会把宿主程序集
+         在插件目录里再放一份，导致插件 ALC 与宿主类型身份分裂。 -->
+    <Target Name="CopyQRCoderToOutput" AfterTargets="Build">
+        <Copy SourceFiles="@(RuntimeCopyLocalItems)"
+              Condition="'%(RuntimeCopyLocalItems.Filename)' == 'QRCoder'"
+              DestinationFolder="$(OutDir)"
+              SkipUnchangedFiles="true" />
+    </Target>
+
+    <!-- 宿主兼容层：ClassIsland.* 为 TypeForwardedTo 转发程序集，必须同时引用 ClassFabric.* 真身程序集 -->
+    <ItemGroup>
+        <Reference Include="ClassIsland.PluginSdk">
+            <HintPath>$(ClassFabricDevOutput)\ClassIsland.PluginSdk.dll</HintPath>
+            <Private>false</Private>
+        </Reference>
+        <Reference Include="ClassIsland.Core">
+            <HintPath>$(ClassFabricDevOutput)\ClassIsland.Core.dll</HintPath>
+            <Private>false</Private>
+        </Reference>
+        <Reference Include="ClassIsland.Shared">
+            <HintPath>$(ClassFabricDevOutput)\ClassIsland.Shared.dll</HintPath>
+            <Private>false</Private>
+        </Reference>
+        <Reference Include="ClassFabric.Core">
+            <HintPath>$(ClassFabricDevOutput)\ClassFabric.Core.dll</HintPath>
+            <Private>false</Private>
+        </Reference>
+        <Reference Include="ClassFabric.Shared">
+            <HintPath>$(ClassFabricDevOutput)\ClassFabric.Shared.dll</HintPath>
+            <Private>false</Private>
+        </Reference>
+    </ItemGroup>
+
+    <!-- 插件间契约程序集（本仓同源项目）：接口与实现分开，别的插件只引抽象包就能编译。
+         Private=true（默认）：契约 DLL 必须随插件落盘，否则运行时解析接口类型会失败。 -->
+    <ItemGroup>
+        <ProjectReference Include="..\ClassFabric.RemoteBroadcast.Abstractions\ClassFabric.RemoteBroadcast.Abstractions.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <None Update="manifest.yml">
+            <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+        </None>
+        <None Update="icon.png">
+            <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+        </None>
+        <None Include="Assets\wwwroot\**\*">
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </None>
+    </ItemGroup>
+
+</Project>

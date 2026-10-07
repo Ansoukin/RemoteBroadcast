@@ -1,0 +1,294 @@
+<ci:SettingsPageBase
+    x:Class="ClassFabric.RemoteBroadcast.UI.RemoteBroadcastRosterSettingsPage"
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:ci="http://classfabric.tech/schemas/xaml/core"
+    xmlns:controls="clr-namespace:FluentAvalonia.UI.Controls;assembly=FluentAvalonia"
+    xmlns:ui="using:ClassFabric.RemoteBroadcast.UI"
+    xmlns:m="using:ClassFabric.RemoteBroadcast.Models"
+    mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450">
+
+    <!-- 4.2.2：页内右滑抽屉（同款 ci:DrawerHost / DrawerPlacement=Right），承载二维码——
+         替代原 QrWindow 弹窗，与宿主「自动化」等右栏视觉语言一致。 -->
+    <ci:DrawerHost x:Name="PageDrawer" DrawerPlacement="Right" IsDrawerOpen="False">
+        <ScrollViewer>
+            <StackPanel Classes="settings-container animated-intro">
+                <ci:IconText Glyph="{ci:FI KeyRegular}" Text="接入码" Margin="0 0 0 4" />
+
+            <!-- 接入码 -->
+            <controls:FASettingsExpander IconSource="{ci:FluentIconSource {ci:FI KeyRegular}}"
+                                         Header="接入码"
+                                         Description="一人一码是推荐实践：教师扫码登记后，其姓名会绑定到对应接入码（重新登记覆盖）。撤销即时失效。"
+                                         IsExpanded="True">
+                <controls:FASettingsExpanderItem Content="创建接入码"
+                                                 Description="备注必填且不超过 30 字符，用来在白板上一眼认出这码是谁的。">
+                    <controls:FASettingsExpanderItem.Footer>
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <TextBox x:Name="NewCodeNoteBox" Width="260" PlaceholderText="备注（必填，如：刘老师）" />
+                            <Button Click="CreateCode_Click">
+                                <ci:IconText Glyph="{ci:FI AddRegular}" Text="创建接入码" />
+                            </Button>
+                        </StackPanel>
+                    </controls:FASettingsExpanderItem.Footer>
+                </controls:FASettingsExpanderItem>
+
+                <!-- 列表统一当 Content 用：FASettingsExpanderItem 的 Content 是 [Content] 属性，
+                     再写个 Content="…" 标题会和子元素抢同一个属性。列表标题交给上面的 Expander 头。 -->
+                <controls:FASettingsExpanderItem>
+                    <StackPanel Spacing="4">
+                        <TextBlock x:Name="CodeMsgText" Classes="l-instructive" TextWrapping="Wrap" />
+                        <!-- 空态卡（4.2.1）：没有接入码时给引导而不是留白 -->
+                        <StackPanel x:Name="CodeEmptyCard" HorizontalAlignment="Center" Spacing="6"
+                                    Margin="0 10" IsVisible="False">
+                            <ci:IconText Glyph="{ci:FI KeyRegular}" FontSize="28" HorizontalAlignment="Center"
+                                         Foreground="{DynamicResource TextFillColorTertiaryBrush}" />
+                            <TextBlock Text="还没有接入码" HorizontalAlignment="Center"
+                                       Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                            <TextBlock Text="创建第一个，教师扫码登记后即可发起呼叫" HorizontalAlignment="Center"
+                                       Foreground="{DynamicResource TextFillColorTertiaryBrush}" FontSize="12" />
+                        </StackPanel>
+                        <ItemsControl x:Name="CodeList">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="ui:CodeRow">
+                                    <Grid ColumnDefinitions="200,170,130,*,Auto" Margin="0 6">
+                                        <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                                            <TextBlock Text="{Binding Note}" FontWeight="SemiBold"
+                                                       TextTrimming="CharacterEllipsis" />
+                                            <TextBlock Text="{Binding TokenShort}" Classes="l-decoration" FontSize="12" />
+                                        </StackPanel>
+                                        <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                            <TextBlock Text="{Binding BoundDisplay}" TextTrimming="CharacterEllipsis" />
+                                            <TextBlock Text="{Binding BoundAtDisplay}" Classes="l-decoration" FontSize="12" />
+                                        </StackPanel>
+                                        <TextBlock Grid.Column="2" Text="{Binding CreatedAtDisplay}"
+                                                   Classes="l-decoration" FontSize="12" VerticalAlignment="Center" />
+                                        <StackPanel Grid.Column="4" Orientation="Horizontal" Spacing="8"
+                                                    VerticalAlignment="Center">
+                                            <Button Click="ShowQr_Click">
+                                                <ci:IconText Glyph="{ci:FI QrCodeRegular}" Text="二维码" />
+                                            </Button>
+                                            <Button Click="RevokeCode_Click">
+                                                <ci:IconText Glyph="{ci:FI DeleteRegular}" Text="撤销" />
+                                            </Button>
+                                        </StackPanel>
+                                    </Grid>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+                </controls:FASettingsExpanderItem>
+            </controls:FASettingsExpander>
+
+            <Separator Margin="0 12 0 4" />
+            <ci:IconText Glyph="{ci:FI PeopleTeamRegular}" Text="学生名单" Margin="0 0 0 4" />
+
+            <!-- 学生名单 -->
+            <controls:FASettingsExpander IconSource="{ci:FluentIconSource {ci:FI PeopleTeamRegular}}"
+                                         Header="学生名单"
+                                         Description="手机端从这里选人。名单只在本机保存，不上传任何服务器。"
+                                         IsExpanded="True">
+                <controls:FASettingsExpander.Footer>
+                    <StackPanel MaxWidth="320" Spacing="2" HorizontalAlignment="Right">
+                        <TextBlock x:Name="RosterMsgText" Classes="l-instructive"
+                                   TextWrapping="Wrap" TextAlignment="Right" />
+                        <TextBlock x:Name="RosterCountText" Classes="l-decoration" TextAlignment="Right" />
+                    </StackPanel>
+                </controls:FASettingsExpander.Footer>
+
+                <controls:FASettingsExpanderItem Content="添加学生"
+                                                 Description="姓名必填且不超过 20 字符；分组可留空。">
+                    <controls:FASettingsExpanderItem.Footer>
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <TextBox x:Name="NewStudentNameBox" Width="160" PlaceholderText="姓名" />
+                            <TextBox x:Name="NewStudentGroupBox" Width="160" PlaceholderText="分组（可选）" />
+                            <Button Click="AddStudent_Click">
+                                <ci:IconText Glyph="{ci:FI AddRegular}" Text="添加" />
+                            </Button>
+                        </StackPanel>
+                    </controls:FASettingsExpanderItem.Footer>
+                </controls:FASettingsExpanderItem>
+
+                <controls:FASettingsExpanderItem Description="批量导入：每行一名学生，可用「姓名,分组」格式。空名、超长、超上限的行会被跳过，不影响其它行导入。">
+                    <StackPanel Spacing="8">
+                        <TextBox x:Name="BatchImportBox" Height="80" AcceptsReturn="True" TextWrapping="Wrap"
+                                 PlaceholderText="批量导入：每行一名学生，可用「姓名,分组」格式" />
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <Button Click="ImportStudents_Click">
+                                <ci:IconText Glyph="{ci:FI ArrowImportRegular}" Text="导入以上名单" />
+                            </Button>
+                            <Button x:Name="ClearRosterButton" Click="ClearRoster_Click">
+                                <ci:IconText x:Name="ClearRosterLabel" Glyph="{ci:FI DeleteRegular}" Text="清空全部" />
+                            </Button>
+                        </StackPanel>
+                    </StackPanel>
+                </controls:FASettingsExpanderItem>
+
+                <controls:FASettingsExpanderItem>
+                    <!-- 空态卡（4.2.1）与名单列表必须共用一个 Content 节点：
+                         ContentControl 不允许多次赋值 Content（增量编译曾把这条错误瞒住）。 -->
+                    <StackPanel>
+                        <StackPanel x:Name="RosterEmptyCard" HorizontalAlignment="Center" Spacing="6"
+                                    Margin="0 10" IsVisible="False">
+                            <ci:IconText Glyph="{ci:FI PeopleTeamRegular}" FontSize="28" HorizontalAlignment="Center"
+                                         Foreground="{DynamicResource TextFillColorTertiaryBrush}" />
+                            <TextBlock Text="学生名单还是空的" HorizontalAlignment="Center"
+                                       Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                            <TextBlock Text="逐个添加或批量导入，手机端从这里选人呼叫" HorizontalAlignment="Center"
+                                       Foreground="{DynamicResource TextFillColorTertiaryBrush}" FontSize="12" />
+                        </StackPanel>
+                        <ListBox x:Name="RosterList" Margin="0 4 0 0" Height="200">
+                            <ListBox.ItemTemplate>
+                                <DataTemplate x:DataType="m:StudentEntry">
+                                    <Grid ColumnDefinitions="140,140,*">
+                                        <TextBlock Grid.Column="0" Text="{Binding Name}" VerticalAlignment="Center"
+                                                   TextTrimming="CharacterEllipsis" />
+                                        <TextBlock Grid.Column="1" Text="{Binding Group}" Classes="l-decoration"
+                                                   VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                                        <Button Grid.Column="2" HorizontalAlignment="Right" Click="DeleteStudent_Click">
+                                            <ci:IconText Glyph="{ci:FI DeleteRegular}" Text="删除" />
+                                        </Button>
+                                    </Grid>
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
+                    </StackPanel>
+                </controls:FASettingsExpanderItem>
+            </controls:FASettingsExpander>
+
+            <Separator Margin="0 12 0 4" />
+            <ci:IconText Glyph="{ci:FI LocationRegular}" Text="预设目的地" Margin="0 0 0 4" />
+
+            <!-- 预设目的地 -->
+            <controls:FASettingsExpander IconSource="{ci:FluentIconSource {ci:FI LocationRegular}}"
+                                         Header="预设目的地"
+                                         Description="手机端在预设之外仍可临时自定义目的地（不自动加入预设）。"
+                                         IsExpanded="True">
+                <controls:FASettingsExpanderItem Content="添加预设"
+                                                 Description="不超过 50 字符。">
+                    <controls:FASettingsExpanderItem.Footer>
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <TextBox x:Name="NewDestinationBox" Width="220" PlaceholderText="新预设（如：年级组）" />
+                            <Button Click="AddDestination_Click">
+                                <ci:IconText Glyph="{ci:FI AddRegular}" Text="添加" />
+                            </Button>
+                        </StackPanel>
+                    </controls:FASettingsExpanderItem.Footer>
+                </controls:FASettingsExpanderItem>
+
+                <controls:FASettingsExpanderItem>
+                    <ItemsControl x:Name="DestinationList">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="m:DestinationEntry">
+                                <Grid ColumnDefinitions="*,Auto" Margin="0 4">
+                                    <TextBlock Grid.Column="0" Text="{Binding Name}" VerticalAlignment="Center"
+                                               TextTrimming="CharacterEllipsis" />
+                                    <Button Grid.Column="1" HorizontalAlignment="Right" Click="DeleteDestination_Click">
+                                        <ci:IconText Glyph="{ci:FI DeleteRegular}" Text="删除" />
+                                    </Button>
+                                </Grid>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </controls:FASettingsExpanderItem>
+            </controls:FASettingsExpander>
+
+            <!-- 空态卡（4.2.1）：目的地空时给引导 -->
+            <StackPanel x:Name="DestEmptyCard" HorizontalAlignment="Center" Spacing="6"
+                        Margin="0 10" IsVisible="False">
+                <ci:IconText Glyph="{ci:FI LocationRegular}" FontSize="28" HorizontalAlignment="Center"
+                             Foreground="{DynamicResource TextFillColorTertiaryBrush}" />
+                <TextBlock Text="还没有预设目的地" HorizontalAlignment="Center"
+                           Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                <TextBlock Text="添加常用地点，手机端一键选用；临时地点可在呼叫时现输" HorizontalAlignment="Center"
+                           Foreground="{DynamicResource TextFillColorTertiaryBrush}" FontSize="12" />
+            </StackPanel>
+
+            <Separator Margin="0 12 0 4" />
+            <ci:IconText Glyph="{ci:FI PeopleTeamRegular}" Text="接洽人名单" Margin="0 0 0 4" />
+
+            <!-- 接洽人名单：教师目录提供方不在时，网页端从这里取「指定其它老师」的人 -->
+            <controls:FASettingsExpander IconSource="{ci:FluentIconSource {ci:FI PeopleTeamRegular}}"
+                                         Header="接洽人名单"
+                                         Description="网页端「指定其它老师」的候选名单。教师目录类插件接入后此处自动退居兜底；接洽人只影响播报里「找谁」一句话。"
+                                         IsExpanded="False">
+                <controls:FASettingsExpanderItem Content="添加接洽人"
+                                                 Description="姓名 2–20 字符；科目/部门可留空。同名自动覆盖。">
+                    <controls:FASettingsExpanderItem.Footer>
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <TextBox x:Name="NewTeacherNameBox" Width="160" PlaceholderText="姓名（如：王老师）" />
+                            <TextBox x:Name="NewTeacherGroupBox" Width="160" PlaceholderText="科目/部门（可选）" />
+                            <Button Click="AddTeacher_Click">
+                                <ci:IconText Glyph="{ci:FI AddRegular}" Text="添加" />
+                            </Button>
+                        </StackPanel>
+                    </controls:FASettingsExpanderItem.Footer>
+                </controls:FASettingsExpanderItem>
+
+                <controls:FASettingsExpanderItem>
+                    <StackPanel>
+                        <TextBlock x:Name="TeacherMsgText" Classes="l-instructive" TextWrapping="Wrap" />
+                        <StackPanel x:Name="TeacherEmptyCard" HorizontalAlignment="Center" Spacing="6"
+                                    Margin="0 10" IsVisible="False">
+                            <ci:IconText Glyph="{ci:FI PeopleTeamRegular}" FontSize="28" HorizontalAlignment="Center"
+                                         Foreground="{DynamicResource TextFillColorTertiaryBrush}" />
+                            <TextBlock Text="接洽人名单还是空的" HorizontalAlignment="Center"
+                                       Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                            <TextBlock Text="添加常被找的老师，网页端即可一键指定" HorizontalAlignment="Center"
+                                       Foreground="{DynamicResource TextFillColorTertiaryBrush}" FontSize="12" />
+                        </StackPanel>
+                        <ItemsControl x:Name="TeacherList" Margin="0 4 0 0">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="m:TeacherEntry">
+                                    <Grid ColumnDefinitions="140,140,*" Margin="0 4">
+                                        <TextBlock Grid.Column="0" Text="{Binding Name}" VerticalAlignment="Center"
+                                                   TextTrimming="CharacterEllipsis" />
+                                        <TextBlock Grid.Column="1" Text="{Binding Group}" Classes="l-decoration"
+                                                   VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                                        <Button Grid.Column="2" HorizontalAlignment="Right" Click="DeleteTeacher_Click">
+                                            <ci:IconText Glyph="{ci:FI DeleteRegular}" Text="删除" />
+                                        </Button>
+                                    </Grid>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+                </controls:FASettingsExpanderItem>
+            </controls:FASettingsExpander>
+        </StackPanel>
+    </ScrollViewer>
+
+    <!-- 抽屉内容：接入码二维码 + 全文 + 复制 -->
+    <ci:DrawerHost.DrawerContent>
+        <Border Background="{DynamicResource SystemChromeMediumLowColor}" Width="380">
+            <StackPanel Margin="20 18" Spacing="12">
+                <Grid ColumnDefinitions="*,Auto">
+                    <TextBlock x:Name="DrawerNoteText" FontWeight="SemiBold" FontSize="15"
+                               VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                    <Button Grid.Column="1" Click="CloseDrawer_Click" Background="Transparent"
+                            Content="✕" Padding="6 2" />
+                </Grid>
+                <Border Background="White" CornerRadius="8" Padding="12" HorizontalAlignment="Center">
+                    <Image x:Name="DrawerQrImage" Width="240" Height="240" />
+                </Border>
+                <TextBlock x:Name="DrawerUrlText" FontFamily="Consolas" FontSize="11.5"
+                           TextWrapping="Wrap" Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                           TextTrimming="CharacterEllipsis" />
+                <TextBlock x:Name="DrawerBoundText" Classes="l-instructive" />
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                    <Button x:Name="CopyUrlButton" Click="CopyDrawerUrl_Click">
+                        <ci:IconText Glyph="{ci:FI CopyRegular}" Text="复制链接" />
+                    </Button>
+                    <!-- BUG2 修复：登记发生在浏览器侧，抽屉不会自动感知——给个手动刷新，
+                         重读接入码管理器，绑定状态立刻更新。 -->
+                    <Button Click="RefreshDrawerBinding_Click">
+                        <ci:IconText Glyph="{ci:FI ArrowSyncRegular}" Text="刷新绑定" />
+                    </Button>
+                    <TextBlock x:Name="DrawerMsgText" Classes="l-instructive" VerticalAlignment="Center" />
+                </StackPanel>
+            </StackPanel>
+        </Border>
+    </ci:DrawerHost.DrawerContent>
+    </ci:DrawerHost>
+</ci:SettingsPageBase>

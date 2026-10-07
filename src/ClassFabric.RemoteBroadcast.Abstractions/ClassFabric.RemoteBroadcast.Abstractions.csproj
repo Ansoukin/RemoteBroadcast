@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net10.0</TargetFramework>
+        <Nullable>enable</Nullable>
+        <LangVersion>latest</LangVersion>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Platforms>AnyCPU;x64</Platforms>
+        <!-- 插件间契约程序集：刻意不引用任何宿主/第三方程序集。
+             消费方（其它插件）只引用这一个轻量包就能编译，不必把 Remote Broadcast 本体
+             连同 Avalonia、QRCoder 一起拖进来。接口只谈数据，不谈实现。 -->
+    </PropertyGroup>
+
+</Project>
