@@ -1,0 +1,6 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/ClassFabric.RemoteBroadcast.Abstractions/ClassFabric.RemoteBroadcast.Abstractions.csproj" />
+    <Project Path="src/ClassFabric.RemoteBroadcast/ClassFabric.RemoteBroadcast.csproj" />
+  </Folder>
+</Solution>
