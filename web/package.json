@@ -1,0 +1,20 @@
+{
+  "name": "remote-broadcast-web",
+  "private": true,
+  "version": "0.1.1",
+  "type": "module",
+  "description": "ClassFabric 远程广播网页端：PC 工作台 + 移动端启动器，双入口共用一套 API 层与组件库",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "vue": "^3.5.13"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^5.2.1",
+    "typescript": "~5.7.2",
+    "vite": "^6.0.7"
+  }
+}

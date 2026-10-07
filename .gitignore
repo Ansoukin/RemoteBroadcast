@@ -1,0 +1,10 @@
+bin/
+obj/
+.vs/
+*.user
+*.suo
+.cipx/
+artifacts/
+
+# web 工程依赖
+node_modules/
